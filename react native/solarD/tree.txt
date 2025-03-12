@@ -1,0 +1,18 @@
+your-project/
+│── assets/                 # Store images, icons, etc.
+│── navigation/             # Navigation-related files
+│   ├── AppNavigator.js     # Main navigation flow (Auth or Main)
+│   ├── AuthStack.js        # Authentication screens stack
+│   ├── MainTabs.js         # Main app tab navigation after login
+│── screens/                # All screens for the app
+│   ├── SignInScreen.js     # Sign-in screen
+│   ├── SignUpScreen.js     # Sign-up screen
+│   ├── HomeScreen.js       # Home screen (after login)
+│   ├── ProfileScreen.js    # Profile screen
+│   ├── SettingsScreen.js   # Settings screen
+│── App.js                  # Root component, loads AppNavigator
+│── package.json            # Project dependencies and scripts
+│── node_modules/           # Installed dependencies
+│── babel.config.js         # Babel configuration
+│── metro.config.js         # Metro bundler config (for React Native)
+│── .gitignore              # Files to ignore in version control

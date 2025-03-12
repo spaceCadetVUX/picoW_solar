@@ -11,8 +11,8 @@ const AppNavigator = () => {
     <NavigationContainer>
     {/* The user will be redirected to AuthStack first. Once authenticated, they move to MainTabs. */}
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Auth" component={AuthStack} />
-        <Stack.Screen name="Main" component={MainTabs} />
+        <Stack.Screen name="AuthStack" component={AuthStack} />
+        <Stack.Screen name="MainTabs" component={MainTabs} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -4,7 +4,7 @@ import time
 
 # Initialize Firebase only if it hasn't been initialized
 if not firebase_admin._apps:
-    cred = credentials.Certificate(r"C:/Users/vusu3/Desktop/solarControler/filter/schooldatabase-63900-firebase-adminsdk-6ztht-c2b838ee97.json")
+    cred = credentials.Certificate(r"C:/Users/vusu3/Downloads/schooldatabase-63900-firebase-adminsdk-6ztht-c2b838ee97.json")
     firebase_admin.initialize_app(cred, {
         'databaseURL': 'https://schooldatabase-63900-default-rtdb.firebaseio.com/'  # Replace with your DB URL
     })
@@ -20,7 +20,7 @@ data = {
     main: {
         "ID": 1,
         "User":{
-            "userAvt":""  
+            "userAvt":"https://i.pinimg.com/474x/f0/1e/b7/f01eb737b4d16d25c8362c58d55ade1c.jpg"  
         },
         "rom1":{
             "buttons":{

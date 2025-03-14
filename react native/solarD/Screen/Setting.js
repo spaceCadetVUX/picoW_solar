@@ -3,10 +3,32 @@ import { View, Text, TouchableOpacity, Image, Switch, StyleSheet,Alert} from "re
 import { FontAwesome, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { auth } from "../firebaseConfig"; // Firebase Auth
 import { signOut } from "firebase/auth"; // Import signOut
+import { getDatabase, ref, onValue, set } from "firebase/database";
+import app from "../firebaseConfig";
 const SettingsScreen = ({ navigation }) => {
   const [darkMode, setDarkMode] = useState(false);
 
   const [userEmail, setUserEmail] = useState("");
+    const [userAvt, setUserAvt] = useState("");
+    const [newUrl, setNewUrl] = useState("");
+    const [loading, setLoading] = useState(true);
+  
+  // get current avt
+  useEffect(() => {
+      const db = getDatabase(app);
+      const userAvtRef = ref(db, "main/86gQQY9K1Xc3CqQaQ6MUO9nu5472/User/userAvt");
+    
+      onValue(userAvtRef, (snapshot) => {
+        const avatarUrl = snapshot.val();
+        if (avatarUrl) {
+          setUserAvt(avatarUrl);
+          setNewUrl(avatarUrl); // Ensure newUrl is set when data is loaded
+        }
+        setLoading(false);
+      });
+    }, []);
+    
+
 
   useEffect(() => {
     const currentUser = auth.currentUser; // Get currently signed-in user
@@ -32,9 +54,11 @@ const SettingsScreen = ({ navigation }) => {
       <Text style={styles.header}>Settings</Text>
 
       {/* Account Section */}
-      <TouchableOpacity style={styles.accountContainer}>
+      <TouchableOpacity
+      onPress={() => navigation.navigate("Profile")}
+      style={styles.accountContainer} >
         <Image
-          source={{ uri: "https://i.pinimg.com/474x/48/98/8e/48988ec1ea27980220b2a29d5adc2918.jpg" }} // Replace with actual user image
+          source={{ uri: userAvt }} // Replace with actual user image
           style={styles.avatar}
         />
         <View style={{ flex: 1 }}>

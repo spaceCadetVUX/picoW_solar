@@ -157,6 +157,9 @@ const SignUpScreen = ({ navigation }) => {
               <Text style={styles.buttonText}>Sign Up</Text>
             </TouchableOpacity>
           )}
+          <TouchableOpacity onPress={() => navigation.navigate('SignInScreen')}>
+            <Text style={styles.linkText}>Already have an account? Sign In</Text>
+          </TouchableOpacity>
         </Animated.View>
       </View>
     </KeyboardAvoidingView>

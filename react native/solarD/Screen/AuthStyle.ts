@@ -12,6 +12,13 @@ export default StyleSheet.create({
         position:'absolute',
         top:-24,
     },
+    authBackgroundIn: {
+      width: windowWidth, 
+      height: windowHeight * 0.3, 
+      resizeMode:'contain',  
+      position:'absolute',
+      top:-26,
+  },
     containerAnimated:{
         flex:1,
         width:"100%",
@@ -85,5 +92,10 @@ export default StyleSheet.create({
         fontSize:18,
         fontWeight:'bold',
         color:'white'
+      },
+      linkText:{
+        marginTop:20,
+        fontSize:14,
+        color:'blue'
       },
 })

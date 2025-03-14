@@ -19,6 +19,9 @@ main = "86gQQY9K1Xc3CqQaQ6MUO9nu5472"
 data = {
     main: {
         "ID": 1,
+        "User":{
+            "userAvt":""  
+        },
         "rom1":{
             "buttons":{
                 "automatic":False,

@@ -4,13 +4,24 @@ import { getDatabase, ref, onValue, set, off } from 'firebase/database';
 import app from '../firebaseConfig';
 import { Ionicons } from "@expo/vector-icons"; // Import icons
 // for x-axis
-const Slider = ({ min, max, value, onValueChange }) => {
+const Slider = ({ min, max, value, onValueChange, disabled  }) => {
+  // const sliderWidth = 250;
+  // const knobRadius = 15;
+  // const [position, setPosition] = useState(((value - min) / (max - min)) * sliderWidth);
+   const valueRef = useRef(value);
+
+  // useEffect(() => {
+  //   valueRef.current = value;
+  // }, [value]);
+
   const sliderWidth = 250;
   const knobRadius = 15;
   const [position, setPosition] = useState(((value - min) / (max - min)) * sliderWidth);
-  const valueRef = useRef(value);
 
   useEffect(() => {
+    // Update the slider's position whenever the value changes
+    const newPosition = ((value - min) / (max - min)) * sliderWidth;
+    setPosition(newPosition);
     valueRef.current = value;
   }, [value]);
 
@@ -45,19 +56,26 @@ const Slider = ({ min, max, value, onValueChange }) => {
   };
 
   const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
+    onStartShouldSetPanResponder: () => !disabled, // Disable user interaction if disabled
+    onMoveShouldSetPanResponder: () => !disabled,
     onPanResponderMove: (_, gesture) => {
-      updatePosition(gesture.moveX - 50);
+      if (!disabled) {
+        updatePosition(gesture.moveX - 50);
+      }
     },
   });
 
   return (
     <View style={styles.sliderContainer}>
-      <View style={styles.track} />
+      {/* Apply the disabled styles conditionally */}
+      <View style={[styles.track, disabled && styles.disabledTrack]} />
       <View
-        style={[styles.knob, { left: position }]}
-        {...panResponder.panHandlers}
+        style={[
+          styles.knob,
+          { left: position },
+          disabled && styles.disabledKnob,
+        ]}
+        {...(disabled ? {} : panResponder.panHandlers)} // Disable interactions if disabled
       />
     </View>
   );
@@ -122,17 +140,30 @@ const Slider2 = ({ min, max, value, onValueChange }) => {
   );
 };
 
+
+
+
 const App = () => {
   const [xDegree, setXDegree] = useState(0);
   const [yDegree, setYDegree] = useState(0);
 
-  const [isEnabled, setIsEnabled] = useState(false);
-  const animatedValue = new Animated.Value(isEnabled ? 1 : 0);
+  const [IsEnableAuto, setIsEnabledAuto] = useState(false);
+  const animatedValue = new Animated.Value(IsEnableAuto ? 1 : 0);
 // switch
   const toggleSwitch = () => {
-    setIsEnabled(!isEnabled);
+      // Toggle the switch state
+    const newState = !IsEnableAuto;
+    setIsEnabledAuto(newState);
+
+      // Update Firebase database
+    const db = getDatabase(app);
+    const autoRef = ref(db, 'main/86gQQY9K1Xc3CqQaQ6MUO9nu5472/rom1/buttons/automatic');
+    set(autoRef, newState);
+
+
+    //setIsEnabledAuto(!IsEnableAuto);
     Animated.timing(animatedValue, {
-      toValue: isEnabled ? 0 : 1,
+      toValue: IsEnableAuto ? 0 : 1,
       duration: 200,
       useNativeDriver: false,
     }).start();
@@ -187,8 +218,15 @@ const App = () => {
                         <Text style={styles.header}> X-Axis: </Text>
                         <Text style={styles.temperature}>{xDegree}°</Text>
                     </View>
-                    <Slider min={0} max={180} value={xDegree} onValueChange={setXDegree} />
+                    <Slider min={0} max={180} value={xDegree} onValueChange={setXDegree} disabled={IsEnableAuto} />
                 </View>
+
+
+
+
+
+            
+
                 {/* slider Y */}
                 <View style={styles.sliderChild}>     
                     <View style={styles.sliderContextCtn}>
@@ -207,7 +245,7 @@ const App = () => {
                     <Animated.View
                       style={[
                         styles.switchBackground,
-                        { backgroundColor: isEnabled ? "#A041FF" : "#808080" }, // Active & Inactive colors
+                        { backgroundColor: IsEnableAuto ? "#A041FF" : "#808080" }, // Active & Inactive colors
                       ]}
                     >
                       <Animated.View
@@ -217,7 +255,7 @@ const App = () => {
                         ]}
                       >
                         <Ionicons
-                          name={isEnabled ? "checkmark" : "close"}
+                          name={IsEnableAuto ? "checkmark" : "close"}
                           size={16}
                           color="white"
                         />
@@ -258,9 +296,9 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   knob: {
-    width: 26,
+    width: 16,
     height: 26,
-    borderRadius: 13,
+    borderRadius: 5,
     backgroundColor: '#ff4081',
     position: 'absolute',
     top: 7,
@@ -299,6 +337,13 @@ const styles = StyleSheet.create({
     justifyContent:'center',
     alignItems:'center'
     
+  },
+
+  disabledTrack: {
+    backgroundColor: "#ccc", // Grey track when disabled
+  },
+  disabledKnob: {
+    backgroundColor: "#888", // Grey knob when disabled
   },
   buttonCtn:{
     flex:3,

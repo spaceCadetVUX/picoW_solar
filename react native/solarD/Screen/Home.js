@@ -1,117 +1,346 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, PanResponder, ScrollView } from 'react-native';
-import Svg, { Circle, Line } from 'react-native-svg';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, PanResponder,Animated,TouchableOpacity } from 'react-native';
+import { getDatabase, ref, onValue, set, off } from 'firebase/database';
+import app from '../firebaseConfig';
+import { Ionicons } from "@expo/vector-icons"; // Import icons
+// for x-axis
+const Slider = ({ min, max, value, onValueChange }) => {
+  const sliderWidth = 250;
+  const knobRadius = 15;
+  const [position, setPosition] = useState(((value - min) / (max - min)) * sliderWidth);
+  const valueRef = useRef(value);
 
-const CircularSlider = ({ min, max, value, onValueChange }) => {
-  const radius = 70;
-  const strokeWidth = 10;
-  const knobRadius = 20;
-  const centerX = 150;
-  const centerY = 150;
-  const circumference = 2 * Math.PI * radius;
-  const [angle, setAngle] = useState((value - min) / (max - min) * 360);
+  useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
 
-  const polarToCartesian = (angle) => {
-    const radians = (angle - 90) * (Math.PI / 180.0);
-    return {
-      x: centerX + radius * Math.cos(radians),
-      y: centerY + radius * Math.sin(radians),
-    };
+  useEffect(() => {
+    const db = getDatabase(app);
+    const xAxisRef = ref(db, 'main/86gQQY9K1Xc3CqQaQ6MUO9nu5472/rom1/scollers/X-axis');
+
+    const unsubscribe = onValue(xAxisRef, (snapshot) => {
+      const newValue = snapshot.val();
+      if (newValue !== valueRef.current) {
+        const newPosition = ((newValue - min) / (max - min)) * sliderWidth;
+        setPosition(newPosition);
+        onValueChange(newValue);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [max, onValueChange]);
+
+  const updateFirebase = (newValue) => {
+    const db = getDatabase(app);
+    const xAxisRef = ref(db, 'main/86gQQY9K1Xc3CqQaQ6MUO9nu5472/rom1/scollers/X-axis');
+    set(xAxisRef, newValue);
   };
 
-  const updateAngle = (dx, dy) => {
-    const x = dx - centerX;
-    const y = dy - centerY;
-    let newAngle = Math.atan2(y, x) * (180 / Math.PI) + 90;
-    if (newAngle < 0) newAngle += 360;
-    setAngle(newAngle);
-    const newValue = Math.round(min + (newAngle / 360) * (max - min));
+  const updatePosition = (dx) => {
+    let newPosition = Math.max(0, Math.min(sliderWidth, dx));
+    setPosition(newPosition);
+    const newValue = Math.round(min + (newPosition / sliderWidth) * (max - min));
     onValueChange(newValue);
+    updateFirebase(newValue);
   };
 
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => true,
     onPanResponderMove: (_, gesture) => {
-      updateAngle(gesture.moveX, gesture.moveY);
+      updatePosition(gesture.moveX - 50);
     },
   });
 
-  const cartesian = polarToCartesian(angle);
+  return (
+    <View style={styles.sliderContainer}>
+      <View style={styles.track} />
+      <View
+        style={[styles.knob, { left: position }]}
+        {...panResponder.panHandlers}
+      />
+    </View>
+  );
+};
+// for y-axis
+const Slider2 = ({ min, max, value, onValueChange }) => {
+  const sliderWidth = 250;
+  const knobRadius = 15;
+  const [position, setPosition] = useState(((value - min) / (max - min)) * sliderWidth);
+  const valueRef = useRef(value);
+
+  useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
+
+  useEffect(() => {
+    const db = getDatabase(app);
+    const yAxisRef = ref(db, 'main/86gQQY9K1Xc3CqQaQ6MUO9nu5472/rom1/scollers/Y-axis');
+
+    const unsubscribe = onValue(yAxisRef, (snapshot) => {
+      const newValue = snapshot.val();
+      if (newValue !== valueRef.current) {
+        const newPosition = ((newValue - min) / (max - min)) * sliderWidth;
+        setPosition(newPosition);
+        onValueChange(newValue);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [max, onValueChange]);
+
+  const updateFirebase = (newValue) => {
+    const db = getDatabase(app);
+    const yAxisRef = ref(db, 'main/86gQQY9K1Xc3CqQaQ6MUO9nu5472/rom1/scollers/Y-axis');
+    set(yAxisRef, newValue);
+  };
+
+  const updatePosition = (dx) => {
+    let newPosition = Math.max(0, Math.min(sliderWidth, dx));
+    setPosition(newPosition);
+    const newValue = Math.round(min + (newPosition / sliderWidth) * (max - min));
+    onValueChange(newValue);
+    updateFirebase(newValue);
+  };
+
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderMove: (_, gesture) => {
+      updatePosition(gesture.moveX - 50);
+    },
+  });
 
   return (
-    <Svg height="300" width="300">
-      <Circle cx={centerX} cy={centerY} r={radius} stroke="#ddd" strokeWidth={strokeWidth} fill="none" />
-      <Circle
-        cx={centerX}
-        cy={centerY}
-        r={radius}
-        stroke="#ff4081"
-        strokeWidth={strokeWidth}
-        strokeDasharray={`${(angle / 360) * circumference}, ${circumference}`}
-        fill="none"
-        rotation="-90"
-        origin={`${centerX}, ${centerY}`}
+    <View style={styles.sliderContainer}>
+      <View style={styles.track} />
+      <View
+        style={[styles.knob, { left: position }]}
+        {...panResponder.panHandlers}
       />
-      <Line x1={centerX} y1={centerY} x2={cartesian.x} y2={cartesian.y} stroke="#ff4081" strokeWidth={2} />
-      <Circle cx={cartesian.x} cy={cartesian.y} r={knobRadius} fill="#fff" stroke="#ff4081" strokeWidth={3} {...panResponder.panHandlers} />
-    </Svg>
+    </View>
   );
 };
 
 const App = () => {
-  const [temperature, setTemperature] = useState(28);
+  const [xDegree, setXDegree] = useState(0);
+  const [yDegree, setYDegree] = useState(0);
+
+  const [isEnabled, setIsEnabled] = useState(false);
+  const animatedValue = new Animated.Value(isEnabled ? 1 : 0);
+// switch
+  const toggleSwitch = () => {
+    setIsEnabled(!isEnabled);
+    Animated.timing(animatedValue, {
+      toValue: isEnabled ? 0 : 1,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const translateX = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-8, 23], // Adjusted for smooth movement
+  });
+
+
+
+  useEffect(() => {
+    const db = getDatabase(app);
+    const xAxisRef = ref(db, 'main/86gQQY9K1Xc3CqQaQ6MUO9nu5472/rom1/scollers/X-axis');
+
+    const unsubscribe = onValue(xAxisRef, (snapshot) => {
+      const initialValue = snapshot.val();
+      if (initialValue != null) {
+        setXDegree(initialValue);
+      }
+    });
+
+    return () => off(xAxisRef);
+  }, []);
+
+
+  useEffect(() => {
+    const db = getDatabase(app);
+    const yAxisRef = ref(db, 'main/86gQQY9K1Xc3CqQaQ6MUO9nu5472/rom1/scollers/Y-axis');
+
+    const unsubscribe = onValue(yAxisRef, (snapshot) => {
+      const initialValue = snapshot.val();
+      if (initialValue != null) {
+        setYDegree(initialValue);
+      }
+    });
+
+    return () => off(yAxisRef);
+  }, []);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-      <View style={styles.content}>
-        <Text style={styles.header}>Adjust Temperature</Text>
-        <CircularSlider min={0} max={180} value={temperature} onValueChange={setTemperature} />
-        <View style={styles.gaugeContainer}>
-          <Text style={styles.temperature}>{temperature}°C</Text>
-        </View>
-        <View style={styles.headerContainer}>
-          <Text style={styles.name}>Yasmin</Text>
-          <Text style={styles.date}>Sun, 22 Feb 2024</Text>
-        </View>
-        <Text style={styles.condition}>Condition: <Text style={styles.normal}>Normal</Text></Text>
-        <View style={styles.controls}>
-          <ControlButton label="Wearable" status="ON" />
-          <ControlButton label="Obstacle" status="OFF" />
-          <ControlButton label="Next Feed" status="08:00" />
-          <ControlButton label="Appetite" status="90%" />
-          <ControlButton label="Coordinate" status="N/A" />
-        </View>
-      </View>
-    </ScrollView>
+    <View style={styles.container}>
+          <View style={styles.wetheCtn}>
+              <View></View>
+          </View>
+          <View style={styles.ControlPanelCtn}>
+            <View style={styles.sliderCtn}>
+              {/* slider X */}
+                <View style={styles.sliderChild}>
+                    <View style={styles.sliderContextCtn}>
+                        <Text style={styles.header}> X-Axis: </Text>
+                        <Text style={styles.temperature}>{xDegree}°</Text>
+                    </View>
+                    <Slider min={0} max={180} value={xDegree} onValueChange={setXDegree} />
+                </View>
+                {/* slider Y */}
+                <View style={styles.sliderChild}>     
+                    <View style={styles.sliderContextCtn}>
+                      <Text style={styles.header}> Y-Axis: </Text>
+                      <Text style={styles.temperature}>{yDegree}°</Text>
+                    </View>
+                    <Slider2 min={0} max={180} value={yDegree} onValueChange={setYDegree} />
+                </View>
+            </View>
+
+          {/* button */}
+            <View style={styles.buttonCtn}>
+            <View style={styles.switchCtn}>
+              <Text style={styles.SwitchName}>Auto</Text>
+                <TouchableOpacity onPress={toggleSwitch} style={styles.switchContainer}>
+                    <Animated.View
+                      style={[
+                        styles.switchBackground,
+                        { backgroundColor: isEnabled ? "#A041FF" : "#808080" }, // Active & Inactive colors
+                      ]}
+                    >
+                      <Animated.View
+                        style={[
+                          styles.toggleCircle,
+                          { transform: [{ translateX }] },
+                        ]}
+                      >
+                        <Ionicons
+                          name={isEnabled ? "checkmark" : "close"}
+                          size={16}
+                          color="white"
+                        />
+                      </Animated.View>
+                    </Animated.View>
+                </TouchableOpacity>
+            </View>
+    
+
+            </View>
+          </View>
+    </View>
   );
 };
 
-const ControlButton = ({ label, status }) => (
-  <View style={styles.controlButton}>
-    <Text style={styles.controlLabel}>{label}</Text>
-    <View style={styles.controlStatus}>
-      <Text style={styles.controlStatusText}>{status}</Text>
-    </View>
-  </View>
-);
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  content: { alignItems: 'center', paddingVertical: 20 },
-  header: { fontSize: 20, marginBottom: 20, fontWeight: 'bold' },
-  gaugeContainer: { marginTop: 20, alignItems: 'center' },
-  temperature: { fontSize: 48, fontWeight: 'bold' },
-  headerContainer: { alignItems: 'center', marginTop: 30 },
-  name: { fontSize: 24, fontWeight: 'bold', color: '#ff4081' },
-  date: { fontSize: 16, color: '#888' },
-  condition: { fontSize: 18, marginVertical: 20 },
-  normal: { color: 'green' },
-  controls: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 20 },
-  controlButton: { alignItems: 'center', margin: 10 },
-  controlLabel: { fontSize: 16, marginBottom: 5 },
-  controlStatus: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#ff4081', alignItems: 'center', justifyContent: 'center' },
-  controlStatusText: { color: '#fff', fontSize: 16 },
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  header: {
+    fontSize: 17,
+    //marginBottom: 20,
+    fontWeight: 'bold',
+    paddingRight:10
+  },
+  sliderContainer: {
+    width: 270,
+    height: 40,
+    justifyContent: 'center',
+  },
+  track: {
+    width: 250,
+    height: 6,
+    backgroundColor: '#ddd',
+    borderRadius: 3,
+    alignSelf: 'center',
+  },
+  knob: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#ff4081',
+    position: 'absolute',
+    top: 7,
+  },
+  sliderContextCtn:{
+    flexDirection:"row",
+    alignItems:'center',
+    backgroundColor:'white',
+    width:"100%",
+    paddingLeft:20,
+  },
+  temperature: {
+    fontSize: 25,
+
+    fontWeight: 'bold',
+  },
+  wetheCtn:{
+    flex:2,
+    backgroundColor:'red',
+    padding: 10,
+    width:"100%"
+
+  },
+  ControlPanelCtn:{
+    flex:1.9,
+    backgroundColor:'blue',
+    padding:10,
+    width:"100%",
+
+
+  },
+  sliderCtn:{
+    flex:4,
+    height:"100%",
+    backgroundColor:'green',
+    justifyContent:'center',
+    alignItems:'center'
+    
+  },
+  buttonCtn:{
+    flex:3,
+    height:"100%",
+    backgroundColor:'pink',
+    padding:10,
+
+  },
+  sliderChild:{
+    
+  },
+  switchCtn:{
+
+  },
+  switchContainer: {
+    //alignItems: "center",
+   // justifyContent: "center",
+  },
+  SwitchName:{
+    fontSize:20,
+    fontWeight:'bold',
+    paddingVertical:10
+  },
+  switchBackground: {
+    width: 50,
+    height: 28,
+    borderRadius: 20,
+    padding: 2,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  toggleCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "green",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth:1,
+    borderColor:'white'
+  },
 });
+
 
 export default App;

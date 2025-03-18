@@ -6,6 +6,7 @@ import { FontAwesome } from "@expo/vector-icons"; // Import FontAwesome
 import HomeScreen from "../Screen/Home";
 import ProfileScreen from "../Screen/Profile";
 import SettingsScreen from "../Screen/Setting";
+import chard from "../Screen/chardTest";
 
 // Create a stack navigator for the Home screen (optional)
 const HomeStack = createStackNavigator();
@@ -31,7 +32,10 @@ const MainTabs = () => {
             iconName = "user";
           } else if (route.name === "Settings") {
             iconName = "cog";
+          }else if (route.name === "chard") {
+            iconName = "cog";
           }
+
 
           return <FontAwesome name={iconName} size={size} color={color} />;
         },
@@ -42,6 +46,7 @@ const MainTabs = () => {
       <Tab.Screen name="Home" component={HomeStackScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
+      <Tab.Screen name="chard" component={chard} />
     </Tab.Navigator>
   );
 };

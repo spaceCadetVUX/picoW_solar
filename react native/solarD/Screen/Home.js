@@ -5,15 +5,7 @@ import app from '../firebaseConfig';
 import { Ionicons } from "@expo/vector-icons"; // Import icons
 // for x-axis
 const Slider = ({ min, max, value, onValueChange, disabled  }) => {
-  // const sliderWidth = 250;
-  // const knobRadius = 15;
-  // const [position, setPosition] = useState(((value - min) / (max - min)) * sliderWidth);
-   const valueRef = useRef(value);
-
-  // useEffect(() => {
-  //   valueRef.current = value;
-  // }, [value]);
-
+  const valueRef = useRef(value);
   const sliderWidth = 250;
   const knobRadius = 15;
   const [position, setPosition] = useState(((value - min) / (max - min)) * sliderWidth);
@@ -80,14 +72,18 @@ const Slider = ({ min, max, value, onValueChange, disabled  }) => {
     </View>
   );
 };
-// for y-axis
-const Slider2 = ({ min, max, value, onValueChange }) => {
+
+const Slider2 = ({ min, max, value, onValueChange, disabled }) => {
+
+  const valueRef = useRef(value);
   const sliderWidth = 250;
   const knobRadius = 15;
   const [position, setPosition] = useState(((value - min) / (max - min)) * sliderWidth);
-  const valueRef = useRef(value);
 
   useEffect(() => {
+    // Update the slider's position whenever the value changes
+    const newPosition = ((value - min) / (max - min)) * sliderWidth;
+    setPosition(newPosition);
     valueRef.current = value;
   }, [value]);
 
@@ -122,19 +118,26 @@ const Slider2 = ({ min, max, value, onValueChange }) => {
   };
 
   const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
+    onStartShouldSetPanResponder: () => !disabled, // Disable user interaction if disabled
+    onMoveShouldSetPanResponder: () => !disabled,
     onPanResponderMove: (_, gesture) => {
-      updatePosition(gesture.moveX - 50);
+      if (!disabled) {
+        updatePosition(gesture.moveX - 50);
+      }
     },
   });
 
   return (
     <View style={styles.sliderContainer}>
-      <View style={styles.track} />
+      {/* Apply the disabled styles conditionally */}
+      <View style={[styles.track, disabled && styles.disabledTrack]} />
       <View
-        style={[styles.knob, { left: position }]}
-        {...panResponder.panHandlers}
+        style={[
+          styles.knob,
+          { left: position },
+          disabled && styles.disabledKnob,
+        ]}
+        {...(disabled ? {} : panResponder.panHandlers)} // Disable interactions if disabled
       />
     </View>
   );
@@ -220,20 +223,13 @@ const App = () => {
                     </View>
                     <Slider min={0} max={180} value={xDegree} onValueChange={setXDegree} disabled={IsEnableAuto} />
                 </View>
-
-
-
-
-
-            
-
                 {/* slider Y */}
                 <View style={styles.sliderChild}>     
                     <View style={styles.sliderContextCtn}>
                       <Text style={styles.header}> Y-Axis: </Text>
                       <Text style={styles.temperature}>{yDegree}°</Text>
                     </View>
-                    <Slider2 min={0} max={180} value={yDegree} onValueChange={setYDegree} />
+                    <Slider2 min={0} max={180} value={yDegree} onValueChange={setYDegree} disabled={IsEnableAuto}/>
                 </View>
             </View>
 
@@ -299,7 +295,7 @@ const styles = StyleSheet.create({
     width: 16,
     height: 26,
     borderRadius: 5,
-    backgroundColor: '#ff4081',
+    backgroundColor: '#2928e8',
     position: 'absolute',
     top: 7,
   },
@@ -317,25 +313,30 @@ const styles = StyleSheet.create({
   },
   wetheCtn:{
     flex:2,
-    backgroundColor:'red',
     padding: 10,
     width:"100%"
 
   },
   ControlPanelCtn:{
     flex:1.9,
-    backgroundColor:'blue',
     padding:10,
     width:"100%",
-
-
   },
   sliderCtn:{
     flex:4,
     height:"100%",
     backgroundColor:'green',
     justifyContent:'center',
-    alignItems:'center'
+    alignItems:'center',
+    backgroundColor: 'white',
+    shadowColor: '#000', // Shadow color
+    shadowOffset: { width: 0, height: 2 }, // Offset
+    shadowOpacity: 0.25, // Transparency
+    shadowRadius: 3.84, // Blur radius
+
+    elevation: 5, 
+    borderRadius:10,
+    marginBottom:10,
     
   },
 
@@ -350,7 +351,14 @@ const styles = StyleSheet.create({
     height:"100%",
     backgroundColor:'pink',
     padding:10,
-
+    backgroundColor: 'white',
+    shadowColor: '#000', // Shadow color
+    shadowOffset: { width: 0, height: 2 }, // Offset
+    shadowOpacity: 0.25, // Transparency
+    shadowRadius: 3.84, // Blur radius
+    elevation: 5, 
+    borderRadius:10,
+    marginBottom:10,
   },
   sliderChild:{
     

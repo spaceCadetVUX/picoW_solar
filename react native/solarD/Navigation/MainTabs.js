@@ -30,9 +30,10 @@ const MainTabs = () => {
             iconName = "home";
           } else if (route.name === "Profile") {
             iconName = "user";
-          } else if (route.name === "Settings") {
-            iconName = "cog";
-          }else if (route.name === "chard") {
+          } 
+          else if (route.name === "chard") {
+            iconName = "bar-chart";
+          }else if (route.name === "Settings") {
             iconName = "cog";
           }
 
@@ -45,8 +46,9 @@ const MainTabs = () => {
     >
       <Tab.Screen name="Home" component={HomeStackScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
-      <Tab.Screen name="Settings" component={SettingsScreen} />
       <Tab.Screen name="chard" component={chard} />
+      <Tab.Screen name="Settings" component={SettingsScreen} />
+      
     </Tab.Navigator>
   );
 };

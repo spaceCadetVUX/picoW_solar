@@ -30,6 +30,7 @@ data = {
             "scollers":{
                 "X-axis":0,
                 "y-axis":0,
+                "sensitivity":1,
                 },
             "co-ordinate":{
                 "c1":0,

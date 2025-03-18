@@ -72,7 +72,7 @@ const Slider = ({ min, max, value, onValueChange, disabled  }) => {
     </View>
   );
 };
-
+// Y axis
 const Slider2 = ({ min, max, value, onValueChange, disabled }) => {
 
   const valueRef = useRef(value);
@@ -144,11 +144,82 @@ const Slider2 = ({ min, max, value, onValueChange, disabled }) => {
 };
 
 
+// sensitive slider
+const SenSlider = ({ min, max, value, onValueChange, disabled  }) => {
+  const valueRef = useRef(value);
+  const sliderWidth = 250;
+  const knobRadius = 15;
+  const [position, setPosition] = useState(((value - min) / (max - min)) * sliderWidth);
+
+  useEffect(() => {
+    // Update the slider's position whenever the value changes
+    const newPosition = ((value - min) / (max - min)) * sliderWidth;
+    setPosition(newPosition);
+    valueRef.current = value;
+  }, [value]);
+
+  useEffect(() => {
+    const db = getDatabase(app);
+    const xAxisRef = ref(db, 'main/86gQQY9K1Xc3CqQaQ6MUO9nu5472/rom1/scollers/sensitivity');
+
+    const unsubscribe = onValue(xAxisRef, (snapshot) => {
+      const newValue = snapshot.val();
+      if (newValue !== valueRef.current) {
+        const newPosition = ((newValue - min) / (max - min)) * sliderWidth;
+        setPosition(newPosition);
+        onValueChange(newValue);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [max, onValueChange]);
+
+  const updateFirebase = (newValue) => {
+    const db = getDatabase(app);
+    const xAxisRef = ref(db, 'main/86gQQY9K1Xc3CqQaQ6MUO9nu5472/rom1/scollers/sensitivity');
+    set(xAxisRef, newValue);
+  };
+
+  const updatePosition = (dx) => {
+    let newPosition = Math.max(0, Math.min(sliderWidth, dx));
+    setPosition(newPosition);
+    const newValue = Math.round(min + (newPosition / sliderWidth) * (max - min));
+    onValueChange(newValue);
+    updateFirebase(newValue);
+  };
+
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => !disabled, // Disable user interaction if disabled
+    onMoveShouldSetPanResponder: () => !disabled,
+    onPanResponderMove: (_, gesture) => {
+      if (!disabled) {
+        updatePosition(gesture.moveX - 50);
+      }
+    },
+  });
+
+  return (
+    <View style={styles.sliderContainer}>
+      {/* Apply the disabled styles conditionally */}
+      <View style={[styles.Sentrack, disabled && styles.disabledTrack]} />
+      <View
+        style={[
+          styles.knob,
+          { left: position },
+          disabled && styles.disabledKnob,
+        ]}
+        {...(disabled ? {} : panResponder.panHandlers)} // Disable interactions if disabled
+      />
+    </View>
+  );
+};
+
 
 
 const App = () => {
   const [xDegree, setXDegree] = useState(0);
   const [yDegree, setYDegree] = useState(0);
+  const [sen, setSen] = useState(0);
 
   const [IsEnableAuto, setIsEnabledAuto] = useState(false);
   const animatedValue = new Animated.Value(IsEnableAuto ? 1 : 0);
@@ -178,7 +249,7 @@ const App = () => {
   });
 
 
-
+// x axis control
   useEffect(() => {
     const db = getDatabase(app);
     const xAxisRef = ref(db, 'main/86gQQY9K1Xc3CqQaQ6MUO9nu5472/rom1/scollers/X-axis');
@@ -193,7 +264,7 @@ const App = () => {
     return () => off(xAxisRef);
   }, []);
 
-
+// y axis control
   useEffect(() => {
     const db = getDatabase(app);
     const yAxisRef = ref(db, 'main/86gQQY9K1Xc3CqQaQ6MUO9nu5472/rom1/scollers/Y-axis');
@@ -207,6 +278,22 @@ const App = () => {
 
     return () => off(yAxisRef);
   }, []);
+
+// sensitive control
+  useEffect(() => {
+    const db = getDatabase(app);
+    const senRef = ref(db, 'main/86gQQY9K1Xc3CqQaQ6MUO9nu5472/rom1/scollers/sensitivity');
+
+    const unsubscribe = onValue(senRef, (snapshot) => {
+      const initialValue = snapshot.val();
+      if (initialValue != null) {
+        setSen(initialValue);
+      }
+    });
+
+    return () => off(senRef);
+  }, []);
+
 
   return (
     <View style={styles.container}>
@@ -235,31 +322,42 @@ const App = () => {
 
           {/* button */}
             <View style={styles.buttonCtn}>
-            <View style={styles.switchCtn}>
-              <Text style={styles.SwitchName}>Auto</Text>
-                <TouchableOpacity onPress={toggleSwitch} style={styles.switchContainer}>
-                    <Animated.View
-                      style={[
-                        styles.switchBackground,
-                        { backgroundColor: IsEnableAuto ? "#A041FF" : "#808080" }, // Active & Inactive colors
-                      ]}
-                    >
+              <View style={styles.switchCtn}>
+                <Text style={styles.SwitchName}>Auto</Text>
+                  <TouchableOpacity onPress={toggleSwitch} style={styles.switchContainer}>
                       <Animated.View
                         style={[
-                          styles.toggleCircle,
-                          { transform: [{ translateX }] },
+                          styles.switchBackground,
+                          { backgroundColor: IsEnableAuto ? "#A041FF" : "#808080" }, // Active & Inactive colors
                         ]}
                       >
-                        <Ionicons
-                          name={IsEnableAuto ? "checkmark" : "close"}
-                          size={16}
-                          color="white"
-                        />
+                        <Animated.View
+                          style={[
+                            styles.toggleCircle,
+                            { transform: [{ translateX }] },
+                          ]}
+                        >
+                          <Ionicons
+                            name={IsEnableAuto ? "checkmark" : "close"}
+                            size={16}
+                            color="white"
+                          />
+                        </Animated.View>
                       </Animated.View>
-                    </Animated.View>
-                </TouchableOpacity>
-            </View>
-    
+                  </TouchableOpacity>
+              </View>
+              
+
+              {/* sensitive slider */}
+              <View style={styles.senCtn}>
+              <View style={styles.sliderChild}>     
+                    <View style={styles.sliderContextCtn}>
+                      <Text style={styles.header}> sensitive: </Text>
+                      <Text style={styles.temperature}>{sen}</Text>
+                    </View>
+                    <SenSlider min={0} max={10} value={sen} onValueChange={setSen}/>
+                </View>
+              </View>
 
             </View>
           </View>
@@ -284,12 +382,26 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
   },
+  sliderContainerSen: {
+    width: 170,
+    height: 40,
+    justifyContent: 'center',
+  //  / marginLeft:20
+  },
   track: {
     width: 250,
     height: 6,
     backgroundColor: '#ddd',
     borderRadius: 3,
     alignSelf: 'center',
+  },
+  Sentrack: {
+    width: 250,
+    height: 4,
+    backgroundColor: '#ddd',
+    borderRadius: 3,
+    alignSelf: 'center',
+   
   },
   knob: {
     width: 16,
@@ -298,6 +410,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#2928e8',
     position: 'absolute',
     top: 7,
+    
+
   },
   sliderContextCtn:{
     flexDirection:"row",
@@ -347,9 +461,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#888", // Grey knob when disabled
   },
   buttonCtn:{
-    flex:3,
+    flex:3.4,
     height:"100%",
-    backgroundColor:'pink',
+   // flexDirection:'row',
+    justifyContent:'center',
+    alignItems:'center',
     padding:10,
     backgroundColor: 'white',
     shadowColor: '#000', // Shadow color
@@ -366,6 +482,8 @@ const styles = StyleSheet.create({
   switchCtn:{
 
   },
+  senCtn:{},
+
   switchContainer: {
     //alignItems: "center",
    // justifyContent: "center",

@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   Image,
   StyleSheet,
-  ActivityIndicator,
+  ActivityIndicator,StatusBar
 } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { auth } from "../firebaseConfig"; // Firebase Auth
@@ -73,10 +73,11 @@ const EditProfileScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <FontAwesome name="arrow-left" size={22} color="#fff" />
+          <FontAwesome name="arrow-left" size={22} color="black" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Edit Profile</Text>
         <TouchableOpacity onPress={updateUserAvatar}>
@@ -142,32 +143,32 @@ const EditProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#edf1fc",
   },
   header: {
     flexDirection: "row",
  //   alignItems: "center",
     justifyContent: "space-between",
     padding: 20,
-    backgroundColor: "#2a2be8",
+    backgroundColor: "#edf1fc",
     height:200,
 
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 5,
-  
-    // Shadow for Android
     elevation: 5,
   },
   headerTitle: {
-    color: "#fff",
+    color: "black",
     fontSize: 18,
     fontWeight: "bold",
+
   },
   saveText: {
     color: "#fff",
     fontSize: 16,
+    color:'black'
   },
   profileContainer: {
     alignItems: "center",
@@ -199,7 +200,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#555",
     fontWeight: "bold",
-    marginBottom: 5,
+    marginBottom: 5,    
   },
   input: {
     borderBottomWidth: 1,

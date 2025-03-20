@@ -37,10 +37,10 @@ data = {
                 "c2":0,
                 },
             "light_parameter":{
-                "sensor1":0,
-                "sensor2":0,
-                "sensor3":0,
-                "sensor4":0,
+                "S1":0,
+                "S2":0,
+                "S3":0,
+                "S4":0,
                 }
             }
     }

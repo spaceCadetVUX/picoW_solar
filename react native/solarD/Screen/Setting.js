@@ -109,13 +109,14 @@ const SettingsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#edf1fc",
     padding: 20,
   },
   header: {
     fontSize: 28,
     fontWeight: "bold",
     marginBottom: 20,
+    color:'lack',
   },
   sectionTitle: {
     fontSize: 18,
@@ -127,9 +128,10 @@ const styles = StyleSheet.create({
   accountContainer: {
     flexDirection: "row",
     alignItems: "center",
+    width:'100%',
     padding: 15,
     backgroundColor: "white",
-    borderRadius: 10,
+    borderRadius: 60,
     marginBottom: 20,
 
       // Shadow for iOS
@@ -146,14 +148,18 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: 36,
     marginRight: 15,
+    borderWidth:1,
+    borderColor:'black',
   },
   userName: {
     fontSize: 16,
     fontWeight: "bold",
+    color:'black',
+
   },
   userInfo: {
     fontSize: 14,
-    color: "#888",
+    color: "lack",
   },
   settingItem: {
     flexDirection: "row",
@@ -161,11 +167,17 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
+    backgroundColor:'white',
+    borderRadius:20,
+    padding:10,
+    marginVertical:4,
+    elevation:5
   },
   settingText: {
     flex: 1,
     fontSize: 16,
     marginLeft: 10,
+    color:'lack'
   },
   settingValue: {
     fontSize: 14,

@@ -7,6 +7,7 @@ import HomeScreen from "../Screen/Home";
 import ProfileScreen from "../Screen/Profile";
 import SettingsScreen from "../Screen/Setting";
 import chard from "../Screen/chardTest";
+import { View, Text, StyleSheet } from 'react-native';
 
 // Create a stack navigator for the Home screen (optional)
 const HomeStack = createStackNavigator();
@@ -28,7 +29,8 @@ const MainTabs = () => {
 
           if (route.name === "Home") {
             iconName = "home";
-          } else if (route.name === "Profile") {
+          } 
+          else if (route.name === "Profile") {
             iconName = "user";
           } 
           else if (route.name === "chard") {
@@ -40,8 +42,9 @@ const MainTabs = () => {
 
           return <FontAwesome name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: "tomato",  // Active tab color
+        tabBarActiveTintColor: "#3a81f7",  // Active tab color
         tabBarInactiveTintColor: "gray",  // Inactive tab color
+        tabBarStyle: { backgroundColor: "white" }
       })}
     >
       <Tab.Screen name="Home" component={HomeStackScreen} />
@@ -52,5 +55,17 @@ const MainTabs = () => {
     </Tab.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  //  justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#edf1fc',
+    padding: 20,
+  },
+
+});
+
 
 export default MainTabs;

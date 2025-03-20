@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, PanResponder,Animated,TouchableOpacity } from '
 import { getDatabase, ref, onValue, set, off } from 'firebase/database';
 import app from '../firebaseConfig';
 import { Ionicons } from "@expo/vector-icons"; // Import icons
+import { StatusBar } from 'react-native';
 // for x-axis
 const Slider = ({ min, max, value, onValueChange, disabled  }) => {
   const valueRef = useRef(value);
@@ -297,6 +298,7 @@ const App = () => {
 
   return (
     <View style={styles.container}>
+       <StatusBar backgroundColor="#020025" barStyle="light-content" />
           <View style={styles.wetheCtn}>
               <View></View>
           </View>
@@ -369,7 +371,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#edf1fc',
   },
   header: {
     fontSize: 17,
@@ -442,7 +444,7 @@ const styles = StyleSheet.create({
     backgroundColor:'green',
     justifyContent:'center',
     alignItems:'center',
-    backgroundColor: 'white',
+    backgroundColor: '#3a81f7',
     shadowColor: '#000', // Shadow color
     shadowOffset: { width: 0, height: 2 }, // Offset
     shadowOpacity: 0.25, // Transparency
@@ -467,7 +469,7 @@ const styles = StyleSheet.create({
     justifyContent:'center',
     alignItems:'center',
     padding:10,
-    backgroundColor: 'white',
+    backgroundColor: '#3a81f7',
     shadowColor: '#000', // Shadow color
     shadowOffset: { width: 0, height: 2 }, // Offset
     shadowOpacity: 0.25, // Transparency

@@ -4,6 +4,7 @@ import { getDatabase, ref, onValue, set, off } from 'firebase/database';
 import app from '../firebaseConfig';
 import { Ionicons } from "@expo/vector-icons"; // Import icons
 import { StatusBar } from 'react-native';
+import { LinearGradient } from "expo-linear-gradient";
 // for x-axis
 const Slider = ({ min, max, value, onValueChange, disabled  }) => {
   const valueRef = useRef(value);
@@ -16,7 +17,7 @@ const Slider = ({ min, max, value, onValueChange, disabled  }) => {
     const newPosition = ((value - min) / (max - min)) * sliderWidth;
     setPosition(newPosition);
     valueRef.current = value;
-  }, [value]);
+  }, [value]);  
 
   useEffect(() => {
     const db = getDatabase(app);
@@ -61,6 +62,7 @@ const Slider = ({ min, max, value, onValueChange, disabled  }) => {
   return (
     <View style={styles.sliderContainer}>
       {/* Apply the disabled styles conditionally */}
+      <View style={[styles.coloredTrack, { width: position }]} />
       <View style={[styles.track, disabled && styles.disabledTrack]} />
       <View
         style={[
@@ -131,6 +133,7 @@ const Slider2 = ({ min, max, value, onValueChange, disabled }) => {
   return (
     <View style={styles.sliderContainer}>
       {/* Apply the disabled styles conditionally */}
+      <View style={[styles.coloredTrack, { width: position }]} />
       <View style={[styles.track, disabled && styles.disabledTrack]} />
       <View
         style={[
@@ -202,6 +205,7 @@ const SenSlider = ({ min, max, value, onValueChange, disabled  }) => {
   return (
     <View style={styles.sliderContainer}>
       {/* Apply the disabled styles conditionally */}
+      <View style={[styles.coloredTrack, { width: position }]} />
       <View style={[styles.Sentrack, disabled && styles.disabledTrack]} />
       <View
         style={[
@@ -325,12 +329,12 @@ const App = () => {
           {/* button */}
             <View style={styles.buttonCtn}>
               <View style={styles.switchCtn}>
-                <Text style={styles.SwitchName}>Auto</Text>
+                
                   <TouchableOpacity onPress={toggleSwitch} style={styles.switchContainer}>
                       <Animated.View
                         style={[
                           styles.switchBackground,
-                          { backgroundColor: IsEnableAuto ? "#A041FF" : "#808080" }, // Active & Inactive colors
+                          { backgroundColor: IsEnableAuto ? "#3a81f7" : "#ccc" }, // Active & Inactive colors
                         ]}
                       >
                         <Animated.View
@@ -341,12 +345,13 @@ const App = () => {
                         >
                           <Ionicons
                             name={IsEnableAuto ? "checkmark" : "close"}
-                            size={16}
-                            color="white"
+                            size={20}
+                            color="#3a81f7"   
                           />
                         </Animated.View>
                       </Animated.View>
                   </TouchableOpacity>
+                  <Text style={styles.SwitchName}>Auto</Text>
               </View>
               
 
@@ -368,63 +373,65 @@ const App = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    backgroundColor: '#edf1fc',
-  },
-  header: {
-    fontSize: 17,
-    //marginBottom: 20,
-    fontWeight: 'bold',
-    paddingRight:10
-  },
-  sliderContainer: {
-    width: 270,
-    height: 40,
-    justifyContent: 'center',
-  },
-  sliderContainerSen: {
-    width: 170,
-    height: 40,
-    justifyContent: 'center',
-  //  / marginLeft:20
-  },
-  track: {
-    width: 250,
-    height: 6,
-    backgroundColor: '#ddd',
-    borderRadius: 3,
-    alignSelf: 'center',
-  },
-  Sentrack: {
-    width: 250,
-    height: 4,
-    backgroundColor: '#ddd',
-    borderRadius: 3,
-    alignSelf: 'center',
-   
-  },
-  knob: {
-    width: 16,
-    height: 26,
-    borderRadius: 5,
-    backgroundColor: '#2928e8',
-    position: 'absolute',
-    top: 7,
+    container: {
+      flex: 1,
+      alignItems: 'center',
+      backgroundColor: '#edf1fc',
+    },
+    header: {
+      fontSize: 17,
+      //marginBottom: 20,
+      fontWeight: 'bold',
+      paddingRight:10,
+      color:'black'
+      
+    },
+    sliderContainer: {
+      width: 270,
+      height: 40,
+      justifyContent: 'center',
+    },
+    sliderContainerSen: {
+      width: 170,
+      height: 40,
+      justifyContent: 'center',
+    //  / marginLeft:20
+    },
+    track: {
+      width: 250,
+      height: 6,
+      backgroundColor: '#ddd',
+      borderRadius: 3,
+      alignSelf: 'center',
+    },
+    Sentrack: {
+      width: 250,
+      height: 4,
+      backgroundColor: '#ddd',
+      borderRadius: 3,
+      alignSelf: 'center',
     
-
-  },
+    },
+    knob: {
+      width: 16,
+      height: 26,
+      borderRadius: 5,
+      backgroundColor: 'blue',
+      position: 'absolute',
+      top: 7,
+    },
   sliderContextCtn:{
     flexDirection:"row",
     alignItems:'center',
+    justifyContent:'center',
+    width:130,
     backgroundColor:'white',
-    width:"100%",
-    paddingLeft:20,
+    elevation:5,
+    borderRadius:10,
   },
   temperature: {
-    fontSize: 25,
-
+    fontSize: 20,
+    color:'black',
     fontWeight: 'bold',
   },
   wetheCtn:{
@@ -444,7 +451,7 @@ const styles = StyleSheet.create({
     backgroundColor:'green',
     justifyContent:'center',
     alignItems:'center',
-    backgroundColor: '#3a81f7',
+    backgroundColor: 'white',
     shadowColor: '#000', // Shadow color
     shadowOffset: { width: 0, height: 2 }, // Offset
     shadowOpacity: 0.25, // Transparency
@@ -455,6 +462,17 @@ const styles = StyleSheet.create({
     marginBottom:10,
     
   },
+  coloredTrack: {
+    position: "absolute",
+    height: 8,
+    backgroundColor: "#3a81f7", // Change color as needed
+    borderBottomLeftRadius:4,
+    borderTopLeftRadius:4,
+    left: 0,
+    zIndex:1,
+   
+  },
+  
 
   disabledTrack: {
     backgroundColor: "#ccc", // Grey track when disabled
@@ -469,7 +487,7 @@ const styles = StyleSheet.create({
     justifyContent:'center',
     alignItems:'center',
     padding:10,
-    backgroundColor: '#3a81f7',
+    backgroundColor: 'white',
     shadowColor: '#000', // Shadow color
     shadowOffset: { width: 0, height: 2 }, // Offset
     shadowOpacity: 0.25, // Transparency
@@ -483,17 +501,30 @@ const styles = StyleSheet.create({
   },
   switchCtn:{
 
+    justifyContent:"space-between",
+    alignItems:'center',
+    flexDirection:'row',
+    marginBottom:10,
+    marginLeft:-150,
+
+    paddingHorizontal:20,
+
   },
   senCtn:{},
 
   switchContainer: {
     //alignItems: "center",
    // justifyContent: "center",
+   marginBottom:10,
+   padding:10,
+
   },
   SwitchName:{
     fontSize:20,
     fontWeight:'bold',
-    paddingVertical:10
+    marginLeft:15,
+    color:'black',
+    
   },
   switchBackground: {
     width: 50,
@@ -502,12 +533,16 @@ const styles = StyleSheet.create({
     padding: 2,
     flexDirection: "row",
     alignItems: "center",
+
+    borderColor:'black',
+    elevation:5
+    
   },
   toggleCircle: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: "green",
+    backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
     borderWidth:1,

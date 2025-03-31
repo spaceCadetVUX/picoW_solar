@@ -3,6 +3,11 @@ import time
 import urequests
 import json
 
+
+import machine
+import ujson
+
+
 # Firebase Database URL
 FIREBASE_URL = "https://schooldatabase-63900-default-rtdb.firebaseio.com/main/86gQQY9K1Xc3CqQaQ6MUO9nu5472/rom1/light_parameter.json"
 FIREBASE_URL_sc = "https://schooldatabase-63900-default-rtdb.firebaseio.com/main/86gQQY9K1Xc3CqQaQ6MUO9nu5472/rom1/scollers.json"
@@ -12,8 +17,46 @@ FIREBASE_URL_auto = "https://schooldatabase-63900-default-rtdb.firebaseio.com/ma
 SSID = "swift_1989"
 PASSWORD = "11111111"
 
-#
-auto = False  # Global variable
+# Define UART on ESP8266
+uart = machine.UART(0, baudrate=115200)  # TX=GPIO1, RX=GPIO3 (default UART)
+
+# Data to send
+AUTO_MODE_TO_SEND = True
+X_AXIS_TO_SEND = 0
+Y_AXIS_TO_SEND = 0
+
+# Data to receive
+LIGHT_VALUES_TO_RECEIVE = [0, 0, 0, 0]
+X_AXIS_TO_RECEIVE = 0
+Y_AXIS_TO_RECEIVE = 0
+
+# data to send
+def send_data():
+    """Send data from ESP8266 to Pico W via UART"""
+    global AUTO_MODE_TO_SEND, X_AXIS_TO_SEND, Y_AXIS_TO_SEND
+    data = {
+        "auto": AUTO_MODE_TO_SEND,
+        "x": X_AXIS_TO_SEND,
+        "y": Y_AXIS_TO_SEND
+    }
+    json_data = ujson.dumps(data) + "\n"  # Convert to JSON and add newline
+    uart.write(json_data)
+
+
+# data receive
+def receive_data():
+    """Receive data from Pico W and update global variables"""
+    global LIGHT_VALUES_TO_RECEIVE, X_AXIS_TO_RECEIVE, Y_AXIS_TO_RECEIVE
+    if uart.any():  # Check if data is available
+        try:
+            received = uart.readline().decode().strip()
+            if received:
+                data = ujson.loads(received)
+                LIGHT_VALUES_TO_RECEIVE = data.get("light", LIGHT_VALUES_TO_RECEIVE)
+                X_AXIS_TO_RECEIVE = data.get("x", X_AXIS_TO_RECEIVE)
+                Y_AXIS_TO_RECEIVE = data.get("y", Y_AXIS_TO_RECEIVE)
+        except Exception as e:
+            print("UART Receive Error:", e)
 
 
 

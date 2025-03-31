@@ -7,13 +7,9 @@ import _thread
 import urequests
 from ssd1306 import SSD1306_I2C
 import uasyncio as asyncio
-
-
 import ujson
 
 
-# Firebase Database URL (Modify with your actual database path)
-FIREBASE_URL = "https://schooldatabase-63900-default-rtdb.firebaseio.com/main/86gQQY9K1Xc3CqQaQ6MUO9nu5472/rom1/light_parameter.json"
 
 # Initialize I2C buse
 i2c0 = I2C(0, scl=Pin(1), sda=Pin(0), freq=100000)  # For sensors
@@ -48,6 +44,85 @@ LIGHT_BUFFER = [[], [], [], []]  # Buffer to store past light readings for avera
 THRESHOLD = 10  # Minimum difference threshold for movement
 ALPHA = 0.3  # Smoothing factor for light readings
 data = {}
+SAMPLE_SIZE = 5
+
+global filtered_tl, filtered_tr, filtered_bl, filtered_br
+filtered_tl = filtered_tr = filtered_bl = filtered_br = 0
+
+
+
+# Define UART on Pico W
+uart = machine.UART(1, baudrate=115200, tx=machine.Pin(4), rx=machine.Pin(5))
+
+# data to send
+LIGHT_VALUES_TO_SEND = [0, 0, 0, 0]
+X_AXIS_TO_SEND = 0
+Y_AXIS_TO_SEND = 0
+
+# data to receive
+AUTO_MODE = True
+X_AXIS_TO_RECEIVE = 0
+Y_AXIS_TO_RECEIVE = 0
+
+
+# uart send 
+def send_data():
+    """Send data from Pico W to ESP8266 via UART"""
+    data = {
+        "light": LIGHT_VALUES_TO_SEND,
+        "x": X_AXIS_TO_SEND,
+        "y": Y_AXIS_TO_SEND
+    }
+    json_data = ujson.dumps(data) + "\n"  # Convert to JSON and add newline for delimiting
+    uart.write(json_data)
+
+
+# uart receive 
+def receive_data():
+    """Receive data from ESP8266 and update global variables"""
+    global AUTO_MODE, X_AXIS_TO_RECEIVE, Y_AXIS_TO_RECEIVE
+    if uart.any():  # Check if data is available
+        try:
+            received = uart.readline().decode().strip()
+            if received:
+                data = ujson.loads(received)
+                AUTO_MODE = data.get("auto", AUTO_MODE)
+                X_AXIS_TO_RECEIVE = data.get("x", X_AXIS_TO_RECEIVE)
+                Y_AXIS_TO_RECEIVE = data.get("y", Y_AXIS_TO_RECEIVE)
+        except Exception as e:
+            print("UART Receive Error:", e)
+            
+
+
+
+
+def select_channel(channel):
+    """ Selects the TCA9548A channel with error handling """
+    try:
+        if 0 <= channel <= 7:
+            i2c0.writeto(TCA9548A_ADDR, bytearray([1 << channel]))
+    except OSError:
+        print(f"Error selecting TCA9548A channel {channel}. Resetting I2C...")
+        i2c0.init(freq=100000)  # Reinitialize I2C
+
+
+
+def read_bh1750():
+    """ Reads light level from BH1750 sensor with error handling """
+    try:
+        i2c0.writeto(BH1750_ADDR, b'\x10')  # Start measurement
+        time.sleep(0.03)  # Wait for measurement
+        data = i2c0.readfrom(BH1750_ADDR, 2)
+        lux = int.from_bytes(data, 'big') / 1.2
+        return lux
+    except OSError as e:
+        print(f"BH1750 read error: {e}")
+        return -1  # Return -1 to indicate a read failure
+
+
+
+
+
 # servo path
 # Function to set the servo motor angle
 def set_servo_angle(servo, angle):
@@ -55,33 +130,66 @@ def set_servo_angle(servo, angle):
     servo.duty_u16(duty)  # Apply duty cycle to servo
     
 # Function to smoothly move servo between angles
+
+
+
 def smooth_move(servo, current_angle, target_angle, steps=100):
-    step_size = (target_angle - current_angle) / steps  # Calculate step size
-    for i in range(steps):
-        set_servo_angle(servo, current_angle + i * step_size)  # Incrementally move servo
-        time.sleep(0.01)  # Small delay for smooth movement
+    """Di chuyển động cơ servo mượt mà"""
+    step_size = (target_angle - current_angle) / steps
+    for _ in range(steps):
+        current_angle += step_size
+        set_servo_angle(servo, current_angle)
+        time.sleep(0.015)
 
 
+def get_average_light():
+    """Tính giá trị trung bình của ánh sáng"""
+    for ch in range(4):
+        select_channel(ch)
+        lux = read_bh1750()
+        if len(LIGHT_BUFFER[ch]) < SAMPLE_SIZE:
+            LIGHT_BUFFER[ch].append(lux)
+        else:
+            LIGHT_BUFFER[ch].pop(0)
+            LIGHT_BUFFER[ch].append(lux)
+        LIGHT_VALUES[ch] = sum(LIGHT_BUFFER[ch]) / len(LIGHT_BUFFER[ch])
 
 
 # Function to determine direction based on light intensity differences
-def determine_direction():
-    left_light = (LIGHT_VALUES[0] + LIGHT_VALUES[2]) / 2  # Average left-side sensors
-    right_light = (LIGHT_VALUES[1] + LIGHT_VALUES[3]) / 2  # Average right-side sensors
-    top_light = (LIGHT_VALUES[0] + LIGHT_VALUES[1]) / 2  # Average top sensors
-    bottom_light = (LIGHT_VALUES[2] + LIGHT_VALUES[3]) / 2  # Average bottom sensors
-    
-    # Calculate smoothed light differences
-    horizontal_diff = ALPHA * (right_light - left_light)
-    vertical_diff = ALPHA * (top_light - bottom_light)
-    
-    # Determine movement angles within bounds
-    pan_angle = max(-30, min(30, horizontal_diff))
-    tilt_angle = max(-30, min(30, vertical_diff))
-    return pan_angle, tilt_angle
+
 
 
 # Function to control servo movement based on light tracking
+def determine_direction():
+    """Xác định hướng dựa trên giá trị ánh sáng từ 4 góc"""
+    global filtered_tl, filtered_tr, filtered_bl, filtered_br
+    tl, tr, bl, br = LIGHT_VALUES
+
+    filtered_tl = ALPHA * tl + (1 - ALPHA) * filtered_tl
+    filtered_tr = ALPHA * tr + (1 - ALPHA) * filtered_tr
+    filtered_bl = ALPHA * bl + (1 - ALPHA) * filtered_bl
+    filtered_br = ALPHA * br + (1 - ALPHA) * filtered_br
+
+    # Tính toán sự khác biệt theo hướng
+    diff_horizontal = (filtered_tr - filtered_tl)
+    diff_vertical = (filtered_br - filtered_tl)
+
+    # Tăng scaling_factor để di chuyển góc rộng hơn
+    scaling_factor = 0.7 # Tăng giá trị này
+
+    pan_adjustment = diff_horizontal * scaling_factor
+    tilt_adjustment = diff_vertical * scaling_factor
+
+    # Tăng giới hạn điều chỉnh
+    pan_adjustment = max(min(pan_adjustment, 30), -30)  # Tăng giới hạn từ 15 lên 30
+    tilt_adjustment = max(min(tilt_adjustment, 30), -30) # Tăng giới hạn từ 15 lên 30
+
+    # Tính toán góc mục tiêu
+    target_pan = max(min(90 + pan_adjustment, 180), 0)
+    target_tilt = max(min(90 + tilt_adjustment, 180), 0)
+
+    return target_pan, target_tilt, f"Pan:{pan_adjustment:.1f} Tilt:{tilt_adjustment:.1f}"
+
 
         
 
@@ -102,366 +210,68 @@ def rotate_oled_180():
 
 
 
-def select_channel(channel):
-    """ Selects the TCA9548A channel """
-    if 0 <= channel <= 7:
-        i2c0.writeto(TCA9548A_ADDR, bytearray([1 << channel]))
-
-def read_bh1750():
-    """ Reads light level from BH1750 sensor """
-    i2c0.writeto(BH1750_ADDR, b'\x10')  # 1lx resolution, continuous mode
-    time.sleep(0.03)  # Wait for measurement
-    data = i2c0.readfrom(BH1750_ADDR, 2)
-    lux = int.from_bytes(data, 'big') / 1.2  # Convert to Lux
-    return lux
-
-
-
-def start_ap():
-    ap = network.WLAN(network.AP_IF)
-    ap.active(True)
-    ap.config(essid='SolarD', password='12345678')  # SSID and password
-    print("Access Point started. SSID: SolarD, Password: 12345678")
-    print("AP IP:", ap.ifconfig()[0])
-    
-    # Oled
-    oled.fill(0)  # Clear OLED screen
-    oled.text("SSID: SolarD", 0, 0)  # Display SSID
-    oled.text("Pass: 12345678", 0, 10)  # Display Password
-    
-    # Display IP address
-    ip_address = ap.ifconfig()[0]  # Get IP address
-    oled.text(f"IP: {ip_address}", 0, 20)  # Display IP on OLED
-
-    oled.show()  # Update OLED screen
-    return ap
-
-
-def stop_ap(ap):
-    ap.active(False)
-    print("Access Point stopped.")
-    
-
-
-def connect_to_wifi(ssid, password):
-    wlan = network.WLAN(network.STA_IF)
-    wlan.active(True)
-    wlan.connect(ssid, password)
-    print(f"Connecting to Wi-Fi SSID: {ssid}...")
-
-    for _ in range(10):
-        if wlan.isconnected():
-            print("Connected to Wi-Fi!")
-            print("Device IP:", wlan.ifconfig()[0])
-            
-            # Display connection success on OLED
-            oled.fill(0)  # Clear OLED screen
-            oled.text("Connected!", 0, 0)  
-            oled.text("Device IP:", 0, 10)
-            DvID = wlan.ifconfig()[0]
-            oled.text(f"{DvID}", 0, 20)
-            oled.show()  # Update OLED screen
-
-            # Keep the message on screen for 5 seconds
-            time.sleep(5)  
-            
-            return True
-
-        time.sleep(1)
-
-    # Display connection failure on OLED
-    print("Failed to connect to Wi-Fi.")
-    oled.fill(0)  # Clear OLED screen
-    oled.text("Wi-Fi connection:", 0, 0)
-    oled.text("Failed!", 0, 10)
-    oled.show()  # Update OLED screen
-
-    # Keep the failure message on screen for 5 seconds
-    time.sleep(5)
-
-    return False
-
-
-def start_captive_portal(ap):
-    addr = socket.getaddrinfo('0.0.0.0', 80)[0][-1]
-    s = socket.socket()
-    s.bind(addr)
-    s.listen(1)
-    print("Captive portal started. Listening for connections...")
-
-    while True:
-        cl, addr = s.accept()
-        print('Client connected from', addr)
-        request = cl.recv(1024).decode('utf-8')
-        print("Request:", request)
-
-        if 'POST /wifi' in request:
-            try:
-                body = request.split('\r\n\r\n')[1]
-                params = {p.split('=')[0]: p.split('=')[1] for p in body.split('&')}
-                ssid = params['ssid'].replace('%20', ' ')  # Decode URL encoding
-                password = params['password']
-                print(f"Received Wi-Fi Credentials: SSID={ssid}, Password={password}")
-
-                response = "HTTP/1.1 200 OK\r\n\r\nConnecting to Wi-Fi..."
-                cl.send(response)
-                cl.close()
-
-                # Attempt to connect to Wi-Fi
-                if connect_to_wifi(ssid, password):
-                    stop_ap(ap)
-                    return
-                else:
-                    print("Retry Wi-Fi configuration.")
-            except Exception as e:
-                print("Error handling request:", e)
-                cl.send("HTTP/1.1 400 Bad Request\r\n\r\nInvalid request.")
-                cl.close()
-
-        else:
-            # Serve the captive portal page
-            html = """\
-HTTP/1.1 200 OK
-
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Pico W Wi-Fi Setup</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Makes the page scale properly on mobile -->
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
-        .container {
-            background: #ffffff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            max-width: 60%; /* Ensures it fits well on smaller screens */
-            width: 250px; /* For larger screens */
-            text-align: center;
-        }
-
-        h1 {
-            font-size: 22px;
-            color: #333;
-            margin-bottom: 20px;
-        }
-
-        label {
-            font-size: 16px;
-            color: #555;
-            display: block;
-            text-align: left;
-            margin-bottom: 5px;
-        }
-
-        input[type="text"], input[type="password"] {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            box-sizing: border-box;
-        }
-
-        input[type="submit"] {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 10px 20px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-
-        input[type="submit"]:hover {
-            background-color: #218838;
-        }
-
-        small {
-            display: block;
-            margin-top: 10px;
-            color: #777;
-        }
-
-        /* Adjustments for smaller screens */
-        @media (max-width: 400px) {
-            h1 {
-                font-size: 20px;
-            }
-
-            input[type="text"], input[type="password"], input[type="submit"] {
-                font-size: 14px;
-            }
-
-            .container {
-                padding: 15px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Wi-Fi Configuration</h1>
-        <form action="/wifi" method="post">
-            <label for="ssid">SSID:</label>
-            <input type="text" id="ssid" name="ssid" placeholder="Enter Wi-Fi SSID">
-            <label for="password">Password:</label>
-            <input type="text" id="password" name="password" placeholder="Enter Wi-Fi Password">
-            <input type="submit" value="Submit">
-        </form>
-        <small>Enter your Wi-Fi credentials to connect.</small>
-    </div>
-</body>
-</html>
-
-"""
-            cl.send(html)
-            cl.close()
-
-
-
-
-
-def send_to_firebase(data):
-    """ Sends data to Firebase """
-    try:
-        response = urequests.put(FIREBASE_URL, data=ujson.dumps(data), headers={"Content-Type": "application/json"})
-        print("Data sent to Firebase:", response.text)
-        response.close()
-    except Exception as e:
-        print("Failed to send data to Firebase:", e)
-
-def update_firebase_and_display():
-    """ Reads sensor data, updates Firebase, and displays on OLED """
-    while True:
-        data = {}
-        oled.fill(0)  # Clear OLED
-
-        for ch in range(4):  # Read from 4 channels
-            select_channel(ch)
-            lux = read_bh1750()
-            LIGHT_VALUES[ch] = lux
-            data[f"S{ch+1}"] = lux
-
-            # Display readings on OLED
-            oled.text(f"LS {ch+1}: {lux:.2f} Lux", 0, ch * 15)
-            print(f"LS {ch+1}: {lux:.2f} Lux")
-        # Show values on OLED
-        oled.show()
-        print(LIGHT_VALUES)
-        # Send updated values to Firebase
-        send_to_firebase(data)
-        # Wait before the next update
-        time.sleep(0.1)
-        
-
 
 def control_servos():
+    """Điều khiển động cơ servo"""
+    global X_AXIS_TO_SEND, Y_AXIS_TO_SEND
+    current_pan, current_tilt = 90, 90
+    set_servo_angle(servo_pan, current_pan)
+    set_servo_angle(servo_tilt, current_tilt)
+    last_adjustment_time = 0
 
-    pan_angle = 90  # Start position
-    tilt_angle = 90
-    set_servo_angle(servo_pan, pan_angle)
-    set_servo_angle(servo_tilt, tilt_angle)
+    while True:
+        get_average_light()
+        target_pan, target_tilt, direction = determine_direction()
+
+        if abs(current_pan - target_pan) > 1 or abs(current_tilt - target_tilt) > 1:
+            smooth_move(servo_pan, current_pan, target_pan)
+            smooth_move(servo_tilt, current_tilt, target_tilt)
+            current_pan, current_tilt = target_pan, target_tilt
+            last_adjustment_time = time.ticks_ms()
+            
+        X_AXIS_TO_SEND = current_pan
+        Y_AXIS_TO_SEND = current_tilt
+        
+        print(current_pan)
+        print(current_tilt)
+
+
+
+
+        time.sleep(0.1)
+        
+
+def read_sensor():
     
     while True:
+        oled.fill(0)
         for ch in range(4):  # Read from 4 channels
             select_channel(ch)
             lux = read_bh1750()
             LIGHT_VALUES[ch] = lux
+            LIGHT_VALUES_TO_SEND[ch] = lux
             data[f"S{ch+1}"] = lux
 
             # Display readings on OLED
             oled.text(f"LS {ch+1}: {lux:.2f} Lux", 0, ch * 15)
             print(f"LS {ch+1}: {lux:.2f} Lux")
+            oled.show()
+            time.sleep(0.1)
             
-        pan_adjust, tilt_adjust = determine_direction()  # Get required adjustments
-        pan_angle = max(0, min(180, pan_angle + pan_adjust))  # Constrain angles
-        tilt_angle = max(0, min(180, tilt_angle + tilt_adjust))
-        smooth_move(servo_pan, pan_angle, pan_angle + pan_adjust)  # Move servos smoothly
-        smooth_move(servo_tilt, tilt_angle, tilt_angle + tilt_adjust)
-        
-        
-        print(pan_angle)
-        print(tilt_angle)
-        
-        # Update OLED display
-        # Show values on OLED
-        oled.show()
-        print(LIGHT_VALUES)
-        # Send updated values to Firebase
-        send_to_firebase(data)
-        # Wait before the next update
-        time.sleep(0.1)
-
-        time.sleep(0.1)
-        
-        
-
-        
-led = machine.Pin("LED", machine.Pin.OUT)
-
-def while_led():
-    while True:
-        led.on()   # Turn LED on
-        time.sleep(0.1)  # Wait 1 second
-        led.off()  # Turn LED off
-        time.sleep(0.1)  # Wait 1 second
-        
-        
-def abc(data):
-    while True:
-        send_to_firebase(data)
-        print(".......",data)
-        time.sleep(2)
-        
-        
-        
-
-FIREBASE_URL_sc = "https://schooldatabase-63900-default-rtdb.firebaseio.com/main/86gQQY9K1Xc3CqQaQ6MUO9nu5472/rom1/scollers.json"
-
-
-
-
-def set_data_with_put(data):
-    """Sets (uploads) data to Firebase using PUT"""
-    try:
-        response = urequests.put(FIREBASE_URL_sc, data=ujson.dumps(data), headers={"Content-Type": "application/json"})
-        print("Data successfully set:", response.text)
-        response.close()
-    except Exception as e:
-        print("Failed to set data:", e)
-        
-def send():
+        # send data to esp 8266    
+        send_data()
     
-    data_to_set = {
-    "X-axis": 100,
-    "Y-axis": 50,
-    "sensitivity": 10
-    }
-    while True:
-        set_data_with_put(data_to_set)
-        time.sleep(3)
-
+    
 # Main Function
 def main():
     
-    connect_to_wifi('swift_1989','11111111')
+
 
     
-    _thread.start_new_thread(send,())
+    _thread.start_new_thread(control_servos,())
+    read_sensor()
     
-    # Start control_servos on a separate thread
-    control_servos()
+
 
 
     

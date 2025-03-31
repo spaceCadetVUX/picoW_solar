@@ -6,7 +6,7 @@ import urequests
 from ssd1306 import SSD1306_I2C
 
 # Wi-Fi Credentials
-SSID = "Swift_1989"
+SSID = "swift_1989"
 PASSWORD = "11111111"
 
 # Firebase Database URL (Modify with your actual database path)
@@ -78,10 +78,10 @@ def update_firebase():
     connect_wifi()
     while True:
         data = {
-            "sensor1": light_values[0],
-            "sensor2": light_values[1],
-            "sensor3": light_values[2],
-            "sensor4": light_values[3]
+            "S1": light_values[0],
+            "S2": light_values[1],
+            "S3": light_values[2],
+            "S4": light_values[3]
         }
         send_to_firebase(data)
         print("Updated Firebase:", light_values)
@@ -91,7 +91,7 @@ def update_firebase():
 _thread.start_new_thread(read_and_display, ())
 
 # Start updating Firebase on core 1
-_thread.start_new_thread(update_firebase, ())
+update_firebase ()
 
 # Keep the main thread running
 while True:

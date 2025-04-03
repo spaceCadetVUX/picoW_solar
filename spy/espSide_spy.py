@@ -30,33 +30,7 @@ LIGHT_VALUES_TO_RECEIVE = [0, 0, 0, 0]
 X_AXIS_TO_RECEIVE = 0
 Y_AXIS_TO_RECEIVE = 0
 
-# data to send
-def send_data():
-    """Send data from ESP8266 to Pico W via UART"""
-    global AUTO_MODE_TO_SEND, X_AXIS_TO_SEND, Y_AXIS_TO_SEND
-    data = {
-        "auto": AUTO_MODE_TO_SEND,
-        "x": X_AXIS_TO_SEND,
-        "y": Y_AXIS_TO_SEND
-    }
-    json_data = ujson.dumps(data) + "\n"  # Convert to JSON and add newline
-    uart.write(json_data)
 
-
-# data receive
-def receive_data():
-    """Receive data from Pico W and update global variables"""
-    global LIGHT_VALUES_TO_RECEIVE, X_AXIS_TO_RECEIVE, Y_AXIS_TO_RECEIVE
-    if uart.any():  # Check if data is available
-        try:
-            received = uart.readline().decode().strip()
-            if received:
-                data = ujson.loads(received)
-                LIGHT_VALUES_TO_RECEIVE = data.get("light", LIGHT_VALUES_TO_RECEIVE)
-                X_AXIS_TO_RECEIVE = data.get("x", X_AXIS_TO_RECEIVE)
-                Y_AXIS_TO_RECEIVE = data.get("y", Y_AXIS_TO_RECEIVE)
-        except Exception as e:
-            print("UART Receive Error:", e)
 
 
 
@@ -187,18 +161,61 @@ def get_firebase_data_auto():
             pass
 
 
+# data to send
+def send_data():
+    """Send data from ESP8266 to Pico W via UART"""
+    global AUTO_MODE_TO_SEND, X_AXIS_TO_SEND, Y_AXIS_TO_SEND
+    data = {
+        "auto": AUTO_MODE_TO_SEND,
+        "x": X_AXIS_TO_SEND,
+        "y": Y_AXIS_TO_SEND
+    }
+    json_data = ujson.dumps(data) + "\n"  # Convert to JSON and add newline
+    uart.write(json_data)
+
+
+# data receive
+def receive_data():
+    """Receive data from Pico W and update global variables"""
+    global LIGHT_VALUES_TO_RECEIVE, X_AXIS_TO_RECEIVE, Y_AXIS_TO_RECEIVE
+
+    if uart.any():  # Check if data is available
+        try:
+            received = uart.readline()  # Read a line from UART
+            if received:
+                received = received.decode().strip()  # Decode and clean up
+
+                print("Received:", received)  # Debug print
+
+                # Ensure valid JSON
+                if received.startswith("{") and received.endswith("}"):
+                    data = ujson.loads(received)
+
+                    # Update global variables if keys exist
+                    LIGHT_VALUES_TO_RECEIVE = data.get("light", LIGHT_VALUES_TO_RECEIVE)
+                    X_AXIS_TO_RECEIVE = data.get("x", X_AXIS_TO_RECEIVE)
+                    Y_AXIS_TO_RECEIVE = data.get("y", Y_AXIS_TO_RECEIVE)
+
+                    print(f"Updated Values - Light: {LIGHT_VALUES_TO_RECEIVE}, X: {X_AXIS_TO_RECEIVE}, Y: {Y_AXIS_TO_RECEIVE}")
+                else:
+                    print("Invalid JSON format received.")
+
+        except Exception as e:
+            print("UART Receive Error:", e)
+
+
+
 # Main Function
 def main():
     if connect_to_wifi(SSID, PASSWORD):
-        # Fetch current data
-        get_firebase_data_light()
-        get_firebase_data_sc()
-        set_firebase_data(100, 200, 300, 400)
-        set_firebase_data_sl(130, 90, 1)
-        get_firebase_data_auto()
+        print("Connected to Wi-Fi!")
 
+        while True:
+            receive_data()  # Check for UART data
+            S1, S2, S3, S4 = LIGHT_VALUES_TO_RECEIVE[:4]
+            set_firebase_data(S1, S2, S3, S4)  # Send data to Firebase
 
-
+            time.sleep(0.1)  # Reduce delay to allow frequent UART checks
 if __name__ == "__main__":
     main()
 

@@ -27,8 +27,8 @@ BH1750_ADDR = 0x23
 
 
 # Initialize servo motors for pan (horizontal) and tilt (vertical)
-servo_pan = PWM(Pin(18))  # Pan servo connected to GPIO 18
-servo_tilt = PWM(Pin(19)) # Tilt servo connected to GPIO 19
+servo_pan = PWM(Pin(2))  # Pan servo connected to GPIO 18
+servo_tilt = PWM(Pin(3)) # Tilt servo connected to GPIO 19
 
 # Set PWM frequency for servos
 servo_pan.freq(50)  # 50Hz PWM frequency for servos
